@@ -28,7 +28,6 @@ def move_to(element, click=False, delay=0):
 def search_bev():
     set_years()
     open_vehicle_type_dropdown()
-    click_plugin_hybrid()
     click_all_electric()
     click_search_button()
 
@@ -43,11 +42,6 @@ def open_vehicle_type_dropdown():
     move_to(vehicle_type, click=True, delay=1)
 
 
-def click_plugin_hybrid():
-    plug_in_checkbox = driver.find_element(By.NAME, "cbvtplugin")
-    move_to(plug_in_checkbox, click=True)
-
-
 def click_all_electric():
     all_electric_checkbox = driver.find_element(By.ID, "cbvtElectric")
     move_to(all_electric_checkbox, click=True)
@@ -55,11 +49,18 @@ def click_all_electric():
 
 def click_search_button():
     search_button = driver.find_element(By.ID, "btnSearch2")
-    move_to(search_button, click=True)
+    move_to(search_button, click=True, delay=1)
 
 
 driver = create_webdriver()
 search_bev()
-# TODO extract info from each entry based on if it is a EV or a PHEV
+
+# TODO extract info from each entry based on if it is a EV
+list_of_cars = driver.find_element(By.CLASS_NAME, "cars")
+for car in list_of_cars.find_elements(By.CLASS_NAME, "ymm-row"):
+    link = car.find_element(By.TAG_NAME, "a")
+    link.click()
+
+
 time.sleep(1000)
 driver.close()
