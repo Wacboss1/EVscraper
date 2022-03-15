@@ -10,9 +10,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 def create_webdriver():
-    options = Options()
-    # options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome()
     driver.get("https://www.fueleconomy.gov/feg/powerSearch.jsp")
     return driver
 
@@ -53,16 +51,7 @@ def click_search_button():
     move_to(search_button, click=True)
 
 
-driver = create_webdriver()
-search_bev()
 
-# TODO extract Name,City efficiency, highway efficiency, combined efficiency, and total Range from each entry
-
-
-
-def go_to_car_info(car):
-    car_link = car.find_element(By.TAG_NAME, "a")
-    move_to(car_link, click=True)
 
 
 def get_car_name():
@@ -80,15 +69,65 @@ def extract_fuel_economy():
     return total_range, combined_fuel_economy, city_fuel_economy, highway_fuel_economy, kwh_per_100miles
 
 
-list_of_cars = driver.find_element(By.CLASS_NAME, "cars")
-for car in list_of_cars.find_elements(By.CLASS_NAME, "ymm-row"):
-    #TODO store the href for each element then scrape each link
-    go_to_car_info(car)
+def extract_all_car_links():
+    car_link_list = []
+    while True:
+        current_page = extract_current_page_num()
+        add_car_links_to_list(car_link_list)
+        click_next_page()
+        new_page = extract_current_page_num()
+        if is_still_same_page(current_page, new_page):
+            break
+    return car_link_list
+
+
+def add_car_links_to_list(car_link_list):
+    soup = update_soup()
+    cars = soup.find_all("tr", class_="ymm-row")
+    for car in cars:
+        car_link_list.append(car.find("a").get("href"))
+
+
+def update_soup():
+    return BeautifulSoup(driver.page_source, 'lxml')
+
+
+def click_next_page():
+    next_button = driver.find_element(By.CLASS_NAME, "icon-next")
+    move_to(next_button, click=True)
+
+
+def extract_current_page_num():
+    soup = update_soup()
+    new_page = soup.find("ul", class_="pagination").get_text().strip()
+    return new_page
+
+
+def is_still_same_page(current_page, new_page):
+    return current_page == new_page
+
+
+def extract_ev_data():
+    global soup, name
+    driver.get("https://www.fueleconomy.gov/feg/" + link)
     soup = BeautifulSoup(driver.page_source, 'lxml')
     name = get_car_name()
-    max_range, combined, city, highway, kwh_per_100mi = extract_fuel_economy()
-    driver.back()
-    time.sleep(5)
+    return name, extract_fuel_economy()
 
+
+print("creating driver")
+driver = create_webdriver()
+print("searching for cars")
+search_bev()
+print("gathering links")
+soup = update_soup()
+car_link_list = extract_all_car_links()
+print("extracting data")
+for link in car_link_list:
+    ev = extract_ev_data()
+    print(ev)
+
+#TODO create row in excel doc using pandas for each ev
+print("done")
 time.sleep(1000)
 driver.close()
