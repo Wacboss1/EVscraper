@@ -33,7 +33,7 @@ def search_bev():
 
 
 def set_years():
-    year1 = Select(driver.find_element_by_id("year1"))
+    year1 = Select(driver.find_element(By.ID, "year1"))
     year1.select_by_value("2009")
 
 
@@ -49,7 +49,7 @@ def click_all_electric():
 
 def click_search_button():
     search_button = driver.find_element(By.ID, "btnSearch2")
-    move_to(search_button, click=True, delay=1)
+    move_to(search_button, click=True)
 
 
 driver = create_webdriver()
@@ -58,8 +58,8 @@ search_bev()
 # TODO extract info from each entry based on if it is a EV
 list_of_cars = driver.find_element(By.CLASS_NAME, "cars")
 for car in list_of_cars.find_elements(By.CLASS_NAME, "ymm-row"):
-    link = car.find_element(By.TAG_NAME, "a")
-    link.click()
+    car_link = car.find_element(By.TAG_NAME, "a")
+    car_link.click()
 
 
 time.sleep(1000)
