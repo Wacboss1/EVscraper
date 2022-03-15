@@ -35,7 +35,7 @@ def search_bev():
 
 def set_years():
     year1 = Select(driver.find_element_by_id("year1"))
-    year1.select_by_value("1984")
+    year1.select_by_value("2009")
 
 
 def open_vehicle_type_dropdown():
