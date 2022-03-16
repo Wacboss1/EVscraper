@@ -6,7 +6,6 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.chrome.options import Options
 
 
 def create_webdriver():
@@ -51,24 +50,6 @@ def click_search_button():
     move_to(search_button, click=True)
 
 
-
-
-
-def get_car_name():
-    name_element = soup.find("th", class_="sbsCellHeader")
-    return " ".join(name_element.get_text().split()[1:])  # Removes "X" and whitespace
-
-
-def extract_fuel_economy():
-    digits = re.compile("\\d+")
-    combined_fuel_economy = re.search(digits, soup.find("td", class_="combinedMPG").get_text()).group(0)
-    city_fuel_economy = re.search(digits, soup.find_all("td", class_="ctyhwy")[0].get_text()).group(0)
-    highway_fuel_economy = re.search(digits, soup.find_all("td", class_="ctyhwy")[1].get_text()).group(0)
-    kwh_per_100miles = re.search(digits, soup.find("td", class_="fuelconsumption").get_text()).group(0)
-    total_range = re.search(digits, soup.find("div", class_="totalRange").get_text()).group(0)
-    return total_range, combined_fuel_economy, city_fuel_economy, highway_fuel_economy, kwh_per_100miles
-
-
 def extract_all_car_links():
     car_link_list = []
     while True:
@@ -108,26 +89,44 @@ def is_still_same_page(current_page, new_page):
 
 
 def extract_ev_data():
-    global soup, name
+    global soup
     driver.get("https://www.fueleconomy.gov/feg/" + link)
-    soup = BeautifulSoup(driver.page_source, 'lxml')
+    soup = update_soup()
     name = get_car_name()
     return name, extract_fuel_economy()
 
 
-print("creating driver")
+def get_car_name():
+    name_element = soup.find("th", class_="sbsCellHeader")
+    return " ".join(name_element.get_text().split()[1:])  # Removes "X" and whitespace
+
+
+def extract_fuel_economy():
+    digits = re.compile("\\d+")
+    combined_fuel_economy = re.search(digits, soup.find("td", class_="combinedMPG").get_text()).group(0)
+    city_fuel_economy = re.search(digits, soup.find_all("td", class_="ctyhwy")[0].get_text()).group(0)
+    highway_fuel_economy = re.search(digits, soup.find_all("td", class_="ctyhwy")[1].get_text()).group(0)
+    kwh_per_100miles = re.search(digits, soup.find("td", class_="fuelconsumption").get_text()).group(0)
+    total_range = re.search(digits, soup.find("div", class_="totalRange").get_text()).group(0)
+    return total_range, city_fuel_economy, highway_fuel_economy, combined_fuel_economy, kwh_per_100miles
+
+
+def create_datasheet():
+    global link
+    electric_vehicles = pd.DataFrame()
+    for link in car_link_list:
+        model, fuel_econ = extract_ev_data()
+        entry = {"Model": model, "Range": fuel_econ[0],
+                 "City Efficiency": fuel_econ[1], "Highway Efficiency": fuel_econ[2],
+                 "Combined Efficiency": fuel_econ[3],
+                 "Kwh/100mi": fuel_econ[4]}
+        electric_vehicles = electric_vehicles.append(entry, ignore_index=True)
+    electric_vehicles.to_csv("US EV Fuel Economy Dataset.csv")
+
+
 driver = create_webdriver()
-print("searching for cars")
 search_bev()
-print("gathering links")
 soup = update_soup()
 car_link_list = extract_all_car_links()
-print("extracting data")
-for link in car_link_list:
-    ev = extract_ev_data()
-    print(ev)
-
-#TODO create row in excel doc using pandas for each ev
-print("done")
-time.sleep(1000)
+create_datasheet()
 driver.close()
